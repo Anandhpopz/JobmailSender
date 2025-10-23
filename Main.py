@@ -107,21 +107,41 @@ def call_gemini_api(api_key, prompt, image_data_base64=None):
 
 
 def send_email(sender_email, sender_password, to_email, subject, body):
-    """Send an email using Gmail SMTP."""
+    """Send an email using Gmail SMTP and automatically attach CV.pdf from repo."""
     msg = MIMEMultipart()
     msg["From"] = sender_email
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "plain"))
 
+    # --- Attach CV PDF from local repo ---
+    cv_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")  # change filename if needed
+    if os.path.exists(cv_path):
+        try:
+            with open(cv_path, "rb") as f:
+                part = MIMEApplication(f.read(), _subtype="pdf")
+                part.add_header(
+                    "Content-Disposition",
+                    "attachment",
+                    filename=os.path.basename(cv_path)
+                )
+                msg.attach(part)
+                st.info(f"📎 Attached CV: {os.path.basename(cv_path)}")
+        except Exception as e:
+            st.warning(f"⚠️ Failed to attach CV: {e}")
+    else:
+        st.warning("⚠️ CV file not found in repo path.")
+
+    # --- Send email ---
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)
-            return "✅ Email sent successfully!"
+            return "✅ Email with CV sent successfully!"
     except Exception as e:
         return f"❌ Failed to send email: {str(e)}"
+
 
 
 # --- Streamlit App ---
@@ -237,6 +257,7 @@ Anandha Krishnan S
 
 if __name__ == "__main__":
     app()
+
 
 
 
