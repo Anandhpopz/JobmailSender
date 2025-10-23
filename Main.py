@@ -8,6 +8,8 @@ from io import BytesIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 api_key = st.secrets["api_key"]
+sender_email ="anandhakrishnancareer@gmail.com"
+sender_password = st.secrets["sender_password"]
 # --- Configuration ---
 GEMINI_MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
 API_URL_TEMPLATE = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL_NAME}:generateContent?key="
@@ -235,6 +237,7 @@ Anandha Krishnan S
 
 if __name__ == "__main__":
     app()
+
 
 
 
