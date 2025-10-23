@@ -140,7 +140,7 @@ def app():
         st.subheader("1️⃣ Upload Job Image")
         uploaded_file = st.file_uploader("Upload image (JPG/PNG)", type=["jpg", "jpeg", "png"])
         if uploaded_file:
-            st.image(uploaded_file, caption="Uploaded Job Posting", use_column_width=True)
+            st.image(uploaded_file, caption="Uploaded Job Posting", use_container_width=True)
             image_b64 = file_to_base64(uploaded_file)
         else:
             image_b64 = None
@@ -235,4 +235,5 @@ Anandha Krishnan S
 
 if __name__ == "__main__":
     app()
+
 
