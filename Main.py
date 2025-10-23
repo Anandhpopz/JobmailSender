@@ -130,12 +130,7 @@ def app():
     # Sidebar
     
         # st.header("🔑 Gemini API Key")
-    api_key = "AIzaSyA6jkP8m8cgpwhC-EOoFrFuPRYayW4eUpU"
-    # st.markdown("[Get your API Key](https://aistudio.google.com/app/apikey)")
-
-    st.header("📧 Email Configuration")
-    sender_email ="anandhakrishnancareer@gmail.com"
-    sender_password = "cisu mppp jwlp pnfq"
+    
     # st.markdown("⚠️ Use a Gmail *App Password*, not your main password.")
 
     # Main columns
@@ -240,3 +235,4 @@ Anandha Krishnan S
 
 if __name__ == "__main__":
     app()
+
