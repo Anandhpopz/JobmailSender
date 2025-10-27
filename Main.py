@@ -6,14 +6,16 @@ import os
 import time
 import smtplib
 from email.mime.application import MIMEApplication
-
 from io import BytesIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email import policy
+
+# --- CONFIGURATION ---
 api_key = st.secrets["api_key"]
-sender_email ="anandhakrishnancareer@gmail.com"
+sender_email = "anandhakrishnancareer@gmail.com"
 sender_password = st.secrets["sender_password"]
-# --- Configuration ---
+
 GEMINI_MODEL_NAME = "gemini-2.5-flash-preview-09-2025"
 API_URL_TEMPLATE = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL_NAME}:generateContent?key="
 MAX_RETRIES = 5
@@ -87,7 +89,6 @@ def call_gemini_api(api_key, prompt, image_data_base64=None):
             try:
                 return json.loads(text_output)
             except json.JSONDecodeError:
-                # Try to extract JSON substring if Gemini added extra text
                 import re
                 match = re.search(r"\{.*\}", text_output, re.DOTALL)
                 if match:
@@ -99,7 +100,7 @@ def call_gemini_api(api_key, prompt, image_data_base64=None):
                     return {"MAIL_ID": "", "SUBJECT_LINE": "", "EMAIL_CONTENT": text_output}
 
         except requests.exceptions.RequestException as e:
-            if response.status_code == 429 and attempt < MAX_RETRIES - 1:
+            if hasattr(response, "status_code") and response.status_code == 429 and attempt < MAX_RETRIES - 1:
                 wait_time = 2 ** attempt
                 st.warning(f"Rate limit hit. Retrying in {wait_time}s...")
                 time.sleep(wait_time)
@@ -111,14 +112,17 @@ def call_gemini_api(api_key, prompt, image_data_base64=None):
 
 def send_email(sender_email, sender_password, to_email, subject, body):
     """Send an email using Gmail SMTP and automatically attach CV.pdf from repo."""
-    msg = MIMEMultipart()
+    # ✅ Use modern policy to avoid 'Compat32' error
+    msg = MIMEMultipart(policy=policy.SMTP)
     msg["From"] = sender_email
     msg["To"] = to_email
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain", "utf-8"))
 
-    # --- Attach CV PDF from local repo ---
-    cv_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")  # change filename if needed
+    # ✅ Explicit UTF-8 encoding
+    msg.attach(MIMEText(body.encode("utf-8"), "plain", "utf-8"))
+
+    # --- Attach CV PDF ---
+    cv_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")
     if os.path.exists(cv_path):
         try:
             with open(cv_path, "rb") as f:
@@ -135,16 +139,16 @@ def send_email(sender_email, sender_password, to_email, subject, body):
     else:
         st.warning("⚠️ CV file not found in repo path.")
 
-    # --- Send email ---
+    # --- Send Email ---
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, sender_password)
-            server.send_message(msg)
+            # ✅ sendmail avoids Compat32 bug
+            server.sendmail(sender_email, to_email, msg.as_string())
             return "✅ Email with CV sent successfully!"
     except Exception as e:
         return f"❌ Failed to send email: {str(e)}"
-
 
 
 # --- Streamlit App ---
@@ -152,13 +156,6 @@ def app():
     st.title("📨 AI-Powered Job Mail Sender (JSON Enhanced)")
     st.markdown("Upload a job vacancy image → AI extracts structured email details → Send automatically.")
 
-    # Sidebar
-    
-        # st.header("🔑 Gemini API Key")
-    
-    # st.markdown("⚠️ Use a Gmail *App Password*, not your main password.")
-
-    # Main columns
     col1, col2 = st.columns(2)
 
     with col1:
@@ -189,32 +186,7 @@ About the applicant (for context):
 - Experience: Projects in AI/ML including credit card transaction analysis, currency valuation prediction (LSTM), gesture recognition volume control, diabetic retinopathy detection (CNN), fake news prediction (SVM), employee attrition prediction.
 - Interests: AI/ML, Data Science, Full-stack development, building real-world AI solutions
 - Tone preference: Friendly, respectful, and professional, concise (120–150 words), first-person
-
-Guidelines for EMAIL_CONTENT:
-- Use a friendly, respectful, and professional tone.
-- Include:
-  1. Warm greeting addressing the recipient (if name found).
-  2. Enthusiastic opening applying for the mentioned role and company.
-  3. 1–2 sentences summarizing applicant’s skills and background (use above About Me info).
-  4. Mention attached resume and willingness to discuss.
-  5. Courteous closing with applicant name.
-- Keep it concise (120–150 words), first-person, natural tone.
-
-Example email format:
-Hi Tresa / Anjana,
-
-I hope you’re doing well. I’m excited to apply for the AI Intern position at ArtTech Group. I’m passionate about AI/ML and eager to contribute to innovative projects, explore new frameworks, and build AI-driven solutions alongside your team.
-
-I recently graduated with a Master’s in CS and have experience with Python and ML libraries. I’m enthusiastic about learning, collaborating, and applying my skills to real-world AI initiatives.
-
-Please find my resume attached. I would love the opportunity to discuss how I can contribute to your team.
-
-Looking forward to your response.
-
-Best regards,
-Anandha Krishnan S
 """
-
         user_prompt = st.text_area("Custom Prompt (optional)", value=default_prompt, height=400)
 
     # Process Button
@@ -228,10 +200,9 @@ Anandha Krishnan S
                 result_json = call_gemini_api(api_key, user_prompt, image_b64)
             st.session_state["analysis_result"] = result_json
 
-    # Show extracted info
+    # Display Results
     if "analysis_result" in st.session_state:
         parsed = st.session_state["analysis_result"]
-
         st.markdown("---")
         st.subheader("3️⃣ Extracted Details (from Gemini JSON)")
         st.json(parsed)
@@ -243,7 +214,7 @@ Anandha Krishnan S
 
         if st.button("📤 Send Email Automatically"):
             if not sender_email or not sender_password:
-                st.error("Please enter your sender email and app password in sidebar.")
+                st.error("Please enter your sender email and app password in Streamlit secrets.")
             elif not parsed.get("MAIL_ID"):
                 st.error("No recipient email found in AI output.")
             else:
@@ -255,16 +226,11 @@ Anandha Krishnan S
                         parsed["SUBJECT_LINE"],
                         parsed["EMAIL_CONTENT"]
                     )
-                st.success(status)
+                if "✅" in status:
+                    st.success(status)
+                else:
+                    st.error(status)
 
 
 if __name__ == "__main__":
     app()
-
-
-
-
-
-
-
-
