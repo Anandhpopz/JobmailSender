@@ -110,29 +110,30 @@ def call_gemini_api(api_key, prompt, image_data_base64=None):
     return {"MAIL_ID": "", "SUBJECT_LINE": "", "EMAIL_CONTENT": "Failed after multiple retries."}
 
 
+import smtplib
+from email.message import EmailMessage
+import os
+import streamlit as st
+
 def send_email(sender_email, sender_password, to_email, subject, body):
-    """Send an email using Gmail SMTP and automatically attach CV.pdf from repo."""
-    # ✅ Use modern policy to avoid 'Compat32' error
-    msg = MIMEMultipart(policy=policy.SMTP)
+    """Send UTF-8 email with CV attachment safely."""
+    msg = EmailMessage()
     msg["From"] = sender_email
     msg["To"] = to_email
     msg["Subject"] = subject
-
-    # ✅ Explicit UTF-8 encoding
-    msg.attach(MIMEText(body.encode("utf-8"), "plain", "utf-8"))
+    msg.set_content(body, subtype="plain", charset="utf-8")  # ✅ full Unicode-safe body
 
     # --- Attach CV PDF ---
     cv_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")
     if os.path.exists(cv_path):
         try:
             with open(cv_path, "rb") as f:
-                part = MIMEApplication(f.read(), _subtype="pdf")
-                part.add_header(
-                    "Content-Disposition",
-                    "attachment",
+                msg.add_attachment(
+                    f.read(),
+                    maintype="application",
+                    subtype="pdf",
                     filename=os.path.basename(cv_path)
                 )
-                msg.attach(part)
                 st.info(f"📎 Attached CV: {os.path.basename(cv_path)}")
         except Exception as e:
             st.warning(f"⚠️ Failed to attach CV: {e}")
@@ -144,12 +145,10 @@ def send_email(sender_email, sender_password, to_email, subject, body):
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, sender_password)
-            # ✅ sendmail avoids Compat32 bug
-            server.sendmail(sender_email, to_email, msg.as_string())
+            server.send_message(msg)  # ✅ handles Unicode internally
             return "✅ Email with CV sent successfully!"
     except Exception as e:
         return f"❌ Failed to send email: {str(e)}"
-
 
 # --- Streamlit App ---
 def app():
@@ -234,3 +233,4 @@ About the applicant (for context):
 
 if __name__ == "__main__":
     app()
+
