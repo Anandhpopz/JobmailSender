@@ -115,7 +115,7 @@ def send_email(sender_email, sender_password, to_email, subject, body):
     msg["From"] = sender_email
     msg["To"] = to_email
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(body, "plain", "utf-8"))
 
     # --- Attach CV PDF from local repo ---
     cv_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")  # change filename if needed
@@ -260,6 +260,7 @@ Anandha Krishnan S
 
 if __name__ == "__main__":
     app()
+
 
 
 
