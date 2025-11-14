@@ -85,7 +85,6 @@ def call_gemini_api(api_key, prompt, image_data_base64=None):
                 .get("text", "")
             )
 
-            # Try to parse JSON output directly
             try:
                 return json.loads(text_output)
             except json.JSONDecodeError:
@@ -121,7 +120,7 @@ def send_email(sender_email, sender_password, to_email, subject, body):
     msg["From"] = sender_email
     msg["To"] = to_email
     msg["Subject"] = subject
-    msg.set_content(body, subtype="plain", charset="utf-8")  # ✅ full Unicode-safe body
+    msg.set_content(body, subtype="plain", charset="utf-8")
 
     # --- Attach CV PDF ---
     cv_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")
@@ -140,20 +139,29 @@ def send_email(sender_email, sender_password, to_email, subject, body):
     else:
         st.warning("⚠️ CV file not found in repo path.")
 
-    # --- Send Email ---
     try:
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.starttls()
             server.login(sender_email, sender_password)
-            server.send_message(msg)  # ✅ handles Unicode internally
+            server.send_message(msg)
             return "✅ Email with CV sent successfully!"
     except Exception as e:
         return f"❌ Failed to send email: {str(e)}"
+
 
 # --- Streamlit App ---
 def app():
     st.title("📨 AI-Powered Job Mail Sender (JSON Enhanced)")
     st.markdown("Upload a job vacancy image → AI extracts structured email details → Send automatically.")
+
+    # --- CV UPLOAD (ONLY NEW FEATURE ADDED) ---
+    st.subheader("📄 Upload/Update Your CV")
+    cv_file = st.file_uploader("Upload CV (PDF only)", type=["pdf"])
+    if cv_file:
+        cv_save_path = os.path.join(os.getcwd(), "CV_AnandhaKrishnanS.pdf")
+        with open(cv_save_path, "wb") as f:
+            f.write(cv_file.getvalue())
+        st.success("✅ CV updated successfully! This file will be used for all future emails.")
 
     col1, col2 = st.columns(2)
 
@@ -188,7 +196,6 @@ About the applicant (for context):
 """
         user_prompt = st.text_area("Custom Prompt (optional)", value=default_prompt, height=400)
 
-    # Process Button
     if st.button("🚀 Extract & Analyze"):
         if not uploaded_file:
             st.error("Please upload an image first.")
@@ -199,7 +206,6 @@ About the applicant (for context):
                 result_json = call_gemini_api(api_key, user_prompt, image_b64)
             st.session_state["analysis_result"] = result_json
 
-    # Display Results
     if "analysis_result" in st.session_state:
         parsed = st.session_state["analysis_result"]
         st.markdown("---")
@@ -233,4 +239,3 @@ About the applicant (for context):
 
 if __name__ == "__main__":
     app()
-
