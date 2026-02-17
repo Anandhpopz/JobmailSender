@@ -217,4 +217,11 @@ Tone: Professional, friendly, concise (120-150 words)
                         parsed["EMAIL_CONTENT"]
                     )
 
-                if "✅" i
+                if "✅" in status:
+                    st.success(status)
+                else:
+                    st.error(status)
+
+
+if __name__ == "__main__":
+    app()
