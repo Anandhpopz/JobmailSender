@@ -123,7 +123,7 @@ def send_email(sender_email, sender_password, to_email, subject, body):
     msg.set_content(body, subtype="plain", charset="utf-8")
 
     # --- Attach CV PDF ---
-    cv_path = os.path.join(os.getcwd(), "ANANDHA-KRISHNAN-S-Resume.pdf")
+    cv_path = os.path.join(os.getcwd(), "ANANDHA-KRISHNAN-S_Resume.pdf")
     if os.path.exists(cv_path):
         try:
             with open(cv_path, "rb") as f:
@@ -239,4 +239,5 @@ About the applicant (for context):
 
 if __name__ == "__main__":
     app()
+
 
